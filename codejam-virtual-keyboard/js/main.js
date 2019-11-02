@@ -53,8 +53,31 @@ const keys = [
   ],
 ];
 
+let currentLanguage = localStorage.getItem('currentLanguage') === null ? 'Ru' : localStorage.getItem('currentLanguage');
+let isCapsActive = false;
+function changeKeyboard(parametr) {
+  // get keyboard
+  const keyboard = document.querySelector('.keyboard');
 
-const init = () => {
+  // get keys
+  keyboard.childNodes.forEach((row, index) => {
+    const keysRow = keys[index];
+    row.childNodes.forEach((key, col) => {
+      const myKey = key;
+      let objectKey = '';
+      if (parametr === 'caps') {
+        objectKey = `key${isCapsActive ? '' : 'Caps'}${currentLanguage}`;
+      }
+      if (parametr === 'lang' || parametr === 'shift') {
+        objectKey = `key${isCapsActive ? 'Caps' : ''}${currentLanguage}`;
+      }
+      myKey.dataset.currentLetter = keysRow[col][objectKey];
+      myKey.textContent = myKey.dataset.currentLetter;
+    });
+  });
+}
+
+(function init() {
   // create textarea
   {
     const textarea = document.createElement('textarea');
@@ -75,9 +98,8 @@ const init = () => {
     el.forEach((key) => {
       const keyDiv = document.createElement('div');
 
-      // TODO: |check language| TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
       keyDiv.classList.add('key');
-      keyDiv.textContent = key.keyRu;
+      keyDiv.textContent = key[`key${currentLanguage}`];
 
       keyDiv.dataset.keyCode = key.keyCode;
       keyDiv.dataset.currentLetter = key.keyRu;
@@ -90,56 +112,25 @@ const init = () => {
   });
 
   document.body.append(keyboard);
-};
-init();
+}());
 
-let isCapsActive = false;
 
-function shift(pressed) {
-  // get keyboard
-  const keyboard = document.querySelector('.keyboard');
-
-  // get keys
-  keyboard.childNodes.forEach((row, index) => {
-    const keysRow = keys[index];
-    row.childNodes.forEach((key, col) => {
-      const myKey = key;
-      if (isCapsActive === true) {
-        myKey.dataset.currentLetter = keysRow[col].keyCapsRu;
-        myKey.textContent = myKey.dataset.currentLetter;
-      } else {
-        myKey.dataset.currentLetter = keysRow[col].keyRu;
-        myKey.textContent = myKey.dataset.currentLetter;
-      }
-    });
-  });
-  pressed.classList.remove('pressed-btn');
-}
-
-function caps() {
-  // get keyboard
-  const keyboard = document.querySelector('.keyboard');
-
-  // get keys
-  keyboard.childNodes.forEach((row, index) => {
-    const keysRow = keys[index];
-    row.childNodes.forEach((key, col) => {
-      const myKey = key;
-      if (isCapsActive === false) {
-        myKey.dataset.currentLetter = keysRow[col].keyCapsRu;
-        myKey.textContent = myKey.dataset.currentLetter;
-      } else {
-        myKey.dataset.currentLetter = keysRow[col].keyRu;
-        myKey.textContent = myKey.dataset.currentLetter;
-      }
-    });
-  });
-}
 const textArea = document.querySelector('#textArea');
+let pressedLeftControl = false;
+let pressedLeftAlt = false;
+
+function changeLanguage() {
+  if (currentLanguage === 'Ru') currentLanguage = 'En';
+  else currentLanguage = 'Ru';
+
+  localStorage.setItem('currentLanguage', currentLanguage);
+
+  changeKeyboard('lang');
+}
+
 
 document.addEventListener('keydown', (event) => {
   const pressed = document.querySelector(`div[data-key-code=${event.code}]`);
-  if (pressed == null) return;
   event.preventDefault();
   pressed.classList.add('pressed-btn');
 
@@ -167,18 +158,20 @@ document.addEventListener('keydown', (event) => {
     case 'MetaLeft':
       return;
     case 'ControlLeft':
+      pressedLeftControl = true;
       return;
     case 'ControlRight':
       return;
     case 'AltLeft':
+      pressedLeftAlt = true;
       return;
     case 'AltRight':
       return;
     case 'ShiftLeft':
-      caps();
+      changeKeyboard('caps');
       return;
     case 'ShiftRight':
-      caps();
+      changeKeyboard('caps');
       return;
     case 'CapsLock':
       return;
@@ -191,25 +184,32 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('keyup', (event) => {
   const pressed = document.querySelector(`div[data-key-code=${event.code}]`);
-  if (pressed === null) return;
 
   switch (event.code) {
     case 'CapsLock':
-      caps();
+      changeKeyboard('caps');
       if (isCapsActive) {
         pressed.classList.remove('pressed-btn');
       }
       isCapsActive = !isCapsActive;
       return;
-
     case 'ShiftLeft':
-      shift(pressed);
+      pressed.classList.remove('pressed-btn');
+      changeKeyboard('shift');
       return;
     case 'ShiftRight':
-      shift(pressed);
+      pressed.classList.remove('pressed-btn');
+      changeKeyboard('shift');
       return;
     default:
       break;
+  }
+
+
+  if (pressedLeftControl && pressedLeftAlt) {
+    changeLanguage();
+    pressedLeftControl = false;
+    pressedLeftAlt = false;
   }
 
   pressed.classList.remove('pressed-btn');
