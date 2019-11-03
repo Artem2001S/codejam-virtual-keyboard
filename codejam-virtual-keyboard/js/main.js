@@ -1,12 +1,4 @@
-function Key(keyCode, keyRu, keyEn, keyCapsRu, keyCapsEn, size = '', isFunctional = false) {
-  this.keyCode = keyCode;
-  this.keyRu = keyRu;
-  this.keyEn = keyEn;
-  this.keyCapsRu = keyCapsRu === undefined ? keyRu.toUpperCase() : keyCapsRu;
-  this.keyCapsEn = keyCapsEn === undefined ? keyEn.toUpperCase() : keyCapsEn;
-  this.size = size;
-  this.isFunctional = isFunctional;
-}
+import Key from './key.js';
 
 const keys = [
   [
@@ -55,6 +47,48 @@ const keys = [
 
 let currentLanguage = localStorage.getItem('currentLanguage') === null ? 'Ru' : localStorage.getItem('currentLanguage');
 let isCapsActive = false;
+
+let pressedLeftControl = false;
+let pressedLeftAlt = false;
+
+(function init() {
+  // create textarea
+  {
+    const textarea = document.createElement('textarea');
+    textarea.setAttribute('name', 'textArea');
+    textarea.setAttribute('id', 'textArea');
+    textarea.setAttribute('cols', '30');
+    textarea.setAttribute('rows', '10');
+    document.body.append(textarea);
+  }
+
+  // create keyboard
+  const keyboard = document.createElement('div');
+  keyboard.classList.add('keyboard');
+
+  // add keyboard elements
+  keys.forEach((el) => {
+    const keyRow = document.createElement('div');
+    keyRow.classList.add('keyboard-row');
+    el.forEach((key) => {
+      const keyDiv = document.createElement('div');
+
+      keyDiv.classList.add('key');
+      keyDiv.textContent = key[`key${currentLanguage}`];
+
+      keyDiv.dataset.keyCode = key.keyCode;
+      keyDiv.dataset.currentLetter = key[`key${currentLanguage}`];
+
+      if (key.size !== '') keyDiv.classList.add(`size-${key.size}`);
+      if (key.isFunctional) keyDiv.classList.add('functional-key');
+      keyRow.append(keyDiv);
+    });
+    keyboard.append(keyRow);
+  });
+
+  document.body.append(keyboard);
+}());
+
 function changeKeyboard(parametr) {
   // get keyboard
   const keyboard = document.querySelector('.keyboard');
@@ -76,48 +110,7 @@ function changeKeyboard(parametr) {
     });
   });
 }
-
-(function init() {
-  // create textarea
-  {
-    const textarea = document.createElement('textarea');
-    textarea.setAttribute('name', 'textArea');
-    textarea.setAttribute('id', 'textArea');
-    textarea.setAttribute('cols', '30');
-    textarea.setAttribute('rows', '10');
-    document.body.append(textarea);
-  }
-  // create keyboard
-  const keyboard = document.createElement('div');
-  keyboard.classList.add('keyboard');
-
-  // add keyboard elements
-  keys.forEach((el) => {
-    const keyRow = document.createElement('div');
-    keyRow.classList.add('keyboard-row');
-    el.forEach((key) => {
-      const keyDiv = document.createElement('div');
-
-      keyDiv.classList.add('key');
-      keyDiv.textContent = key[`key${currentLanguage}`];
-
-      keyDiv.dataset.keyCode = key.keyCode;
-      keyDiv.dataset.currentLetter = key.keyRu;
-
-      if (key.size !== '') keyDiv.classList.add(`size-${key.size}`);
-      if (key.isFunctional) keyDiv.classList.add('functional-key');
-      keyRow.append(keyDiv);
-    });
-    keyboard.append(keyRow);
-  });
-
-  document.body.append(keyboard);
-}());
-
-
 const textArea = document.querySelector('#textArea');
-let pressedLeftControl = false;
-let pressedLeftAlt = false;
 
 function changeLanguage() {
   if (currentLanguage === 'Ru') currentLanguage = 'En';
@@ -128,6 +121,87 @@ function changeLanguage() {
   changeKeyboard('lang');
 }
 
+function addMouseEvents() {
+  const keyboard = document.querySelector('.keyboard');
+
+  keyboard.addEventListener('mouseup', (event) => {
+    // check is this a key ?
+    if (event.target.className === 'keyboard') return;
+    // get keyCode
+    const code = event.target.dataset.keyCode;
+    // get key (DOM-element)
+    const pressed = document.querySelector(`div[data-key-code=${code}]`);
+
+    switch (code) {
+      case 'Backspace':
+        textArea.value = textArea.value.slice(0, textArea.value.length - 1);
+        return;
+      case 'Delete':
+        if (textArea.selectionStart < textArea.value.length) {
+          const selectionStartTmp = textArea.selectionStart;
+          textArea.value = textArea.value.slice(0, textArea.selectionStart)
+						+ textArea.value.slice(textArea.selectionStart + 1, textArea.value.length);
+          textArea.selectionStart = selectionStartTmp;
+        }
+        return;
+      case 'Enter':
+        textArea.value += '\n';
+        return;
+      case 'Tab':
+        textArea.value += '\t';
+        return;
+      case 'Space':
+        textArea.value += ' ';
+        return;
+      case 'MetaLeft':
+        return;
+      case 'ControlLeft':
+        pressedLeftControl = true;
+        return;
+      case 'ControlRight':
+        return;
+      case 'AltLeft':
+        pressedLeftAlt = true;
+        return;
+      case 'AltRight':
+        return;
+      case 'ShiftLeft':
+        pressed.classList.add('pressed-btn');
+        changeKeyboard('caps');
+        setTimeout(() => {
+          changeKeyboard('shift');
+          pressed.classList.remove('pressed-btn');
+        }, 300);
+        return;
+      case 'ShiftRight':
+        pressed.classList.add('pressed-btn');
+        changeKeyboard('caps');
+        setTimeout(() => {
+          changeKeyboard('shift');
+          pressed.classList.remove('pressed-btn');
+        }, 300);
+        return;
+      case 'CapsLock':
+        changeKeyboard('caps');
+        if (isCapsActive) {
+          pressed.classList.remove('pressed-btn');
+        } else {
+          pressed.classList.add('pressed-btn');
+        }
+        isCapsActive = !isCapsActive;
+        return;
+      default:
+        break;
+    }
+    textArea.value += pressed.dataset.currentLetter;
+
+    pressed.classList.add('pressed-btn');
+    setTimeout(() => {
+      pressed.classList.remove('pressed-btn');
+    }, 300);
+  });
+}
+addMouseEvents();
 
 document.addEventListener('keydown', (event) => {
   const pressed = document.querySelector(`div[data-key-code=${event.code}]`);
@@ -142,7 +216,7 @@ document.addEventListener('keydown', (event) => {
       if (textArea.selectionStart < textArea.value.length) {
         const selectionStartTmp = textArea.selectionStart;
         textArea.value = textArea.value.slice(0, textArea.selectionStart)
-+ textArea.value.slice(textArea.selectionStart + 1, textArea.value.length);
+					+ textArea.value.slice(textArea.selectionStart + 1, textArea.value.length);
         textArea.selectionStart = selectionStartTmp;
       }
       return;
