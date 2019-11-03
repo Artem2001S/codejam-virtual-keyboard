@@ -20,6 +20,7 @@ module.exports = {
 			{
 				"js": "always"
 			}
-		]
+		],
+		"class-methods-use-this": [0]
 	},
 };
