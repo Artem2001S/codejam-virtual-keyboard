@@ -15,6 +15,7 @@ body {
   width: 50%;
   margin-top: 20px;
 
+	font-size: 17px;
   font-family: "Roboto Mono", monospace;
   resize: none;
 }
@@ -91,9 +92,9 @@ body {
 }
 
 .pressed-btn {
-  color: #ffffff;
+	color: #ffffff;
   background: #f9a825 !important;
-  transform: scale(0.85) skewX(5deg);
+  transform: scale(0.95) skewX(5deg);
 }
 
 .language-view {
@@ -112,6 +113,7 @@ body {
   background: #f9a825;
   color: #ffffff;
 
+	user-select: none;
   cursor: pointer;
 }
 
