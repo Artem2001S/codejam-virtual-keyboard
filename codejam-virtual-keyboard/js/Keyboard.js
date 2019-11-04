@@ -54,14 +54,40 @@ export default class Keyboard {
     ];
   }
 
-  init() {
-    // create textarea
+  createTextArea() {
     const textarea = document.createElement('textarea');
     textarea.setAttribute('name', 'textArea');
     textarea.setAttribute('id', 'textArea');
     textarea.setAttribute('cols', '30');
     textarea.setAttribute('rows', '10');
-    document.body.append(textarea);
+    return textarea;
+  }
+
+  createLanguageViewer() {
+    const languageViewer = document.createElement('div');
+    languageViewer.classList.add('language-view');
+    languageViewer.textContent = this.currentLanguage;
+    const nextLangViewer = document.createElement('div');
+    nextLangViewer.classList.add('next-lang');
+
+    nextLangViewer.textContent = ` → ${this.currentLanguage === 'Ru' ? 'En' : 'Ru'}`;
+
+    languageViewer.append(nextLangViewer);
+    languageViewer.addEventListener('click', () => {
+      this.changeLanguage();
+    });
+    return languageViewer;
+  }
+
+  createTips() {
+    const tips = document.createElement('div');
+    tips.classList.add('tip');
+    tips.innerHTML = 'Change the language by  <span class="key functional-key" data-key-code="ControlLeft">Ctrl</span> + <span class="key functional-key" data-key-code="AltLeft">Alt</span> or click the button below';
+    return tips;
+  }
+
+  init() {
+    document.body.append(this.createTextArea());
 
     // create keyboard
     const keyboard = document.createElement('div');
@@ -87,7 +113,7 @@ export default class Keyboard {
       keyboard.append(keyRow);
     });
 
-    document.body.append(keyboard);
+    document.body.append(this.createTips(), this.createLanguageViewer(), keyboard);
   }
 
   changeKeyboard(whatNeedChange) {
@@ -113,11 +139,15 @@ export default class Keyboard {
   }
 
   changeLanguage() {
+    const languageViewer = document.querySelector('.language-view');
+    const nextLang = languageViewer.childNodes[1];
+    nextLang.textContent = ` → ${this.currentLanguage}`;
+
     if (this.currentLanguage === 'Ru') this.currentLanguage = 'En';
     else this.currentLanguage = 'Ru';
 
     localStorage.setItem('currentLanguage', this.currentLanguage);
-
+    languageViewer.childNodes[0].textContent = this.currentLanguage;
     this.changeKeyboard('lang');
   }
 
@@ -156,10 +186,10 @@ export default class Keyboard {
   addMouseEvent() {
     const keyboard = document.querySelector('.keyboard');
     keyboard.addEventListener('mouseup', (event) => {
-			const textArea = document.querySelector('#textArea');
+      const textArea = document.querySelector('#textArea');
       // check is this a key ?
-			if (event.target.className === 'keyboard') return;
-			if (event.target.className === 'keyboard-row') return;
+      if (event.target.className === 'keyboard') return;
+      if (event.target.className === 'keyboard-row') return;
       // get keyCode
       const code = event.target.dataset.keyCode;
       // get key (DOM-element)
@@ -231,7 +261,13 @@ export default class Keyboard {
   addKeyUpEvent() {
     document.addEventListener('keyup', (event) => {
       const pressed = document.querySelector(`div[data-key-code=${event.code}]`);
-			if (pressed === null) return;
+      if (pressed === null) return;
+
+      if (event.code === 'AltLeft' || event.code === 'ControlLeft') {
+        const pressedTip = document.querySelector(`span[data-key-code=${event.code}]`);
+        pressedTip.classList.remove('pressed-btn');
+      }
+
       switch (event.code) {
         case 'CapsLock':
           this.capsLockClick(pressed);
@@ -250,9 +286,20 @@ export default class Keyboard {
         this.changeLanguage();
         this.pressedLeftControl = false;
         this.pressedLeftAlt = false;
+        this.removeOpacity('.language-view');
       }
       pressed.classList.remove('pressed-btn');
     });
+  }
+
+  addOpacity(selector) {
+    const el = document.querySelector(selector);
+    el.classList.add('with-opacity');
+  }
+
+  removeOpacity(selector) {
+    const el = document.querySelector(selector);
+    el.classList.remove('with-opacity');
   }
 
   addKeyDownEvent() {
@@ -260,6 +307,12 @@ export default class Keyboard {
       const textArea = document.querySelector('#textArea');
       const pressed = document.querySelector(`div[data-key-code=${event.code}]`);
       if (pressed === null) return;
+
+      if (event.code === 'AltLeft' || event.code === 'ControlLeft') {
+        const pressedTip = document.querySelector(`span[data-key-code=${event.code}]`);
+        pressedTip.classList.add('pressed-btn');
+      }
+
       event.preventDefault();
       pressed.classList.add('pressed-btn');
 
@@ -283,6 +336,9 @@ export default class Keyboard {
           return;
         case 'ControlLeft':
           this.pressedLeftControl = true;
+          if (this.pressedLeftAlt) {
+            this.addOpacity('.language-view');
+          }
           return;
         case 'ControlRight':
         case 'AltRight':
@@ -290,6 +346,9 @@ export default class Keyboard {
           return;
         case 'AltLeft':
           this.pressedLeftAlt = true;
+          if (this.pressedLeftControl) {
+            this.addOpacity('.language-view');
+          }
           return;
         case 'ShiftLeft':
           this.changeKeyboard('caps');
